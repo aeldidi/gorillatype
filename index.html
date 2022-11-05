@@ -27,8 +27,7 @@
         Hi there
         I am a monkey.
         Ooh ooh ah ah.
-        `;
-
+        `
         let all_red = false
 
         function toggle_red() {
@@ -40,6 +39,7 @@
                 }
                 return
             }
+
             const divs = document.querySelectorAll('*')
             for (const div of divs) {
                 div.classList.add('red-outline')
@@ -56,13 +56,14 @@
                 }
                 result += '<div class="word">'
                 for (const letter of word) {
-                    result += `<div class="letter">${letter}</div>`
+                    result += `<div class="letter not-typed">${letter}</div>`
                 }
                 result += '</div><div class="space"></div>'
             }
             div.innerHTML = result
 
-            toggle_red()
+            window.addEventListener('keydown', function() {})
+
         }
 
         window.onload = main
@@ -73,8 +74,6 @@
     <h1>GorillaType</h1>
     <div id="typing-area">
     </div>
-
-    <div style="height: 10em"></div>
 
     <button id="toggle-red" onclick="toggle_red()">Toggle Red Outlines</button>
 </body>
