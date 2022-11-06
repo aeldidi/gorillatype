@@ -2,32 +2,55 @@
 
 <head>
     <style>
+        * {
+            font-family: monospace;
+        }
+
+        .cursor {
+            animation: blink 1s steps(1, end) infinite;
+            border-left: 1px solid rgba(0, 0, 0, 0)
+        }
+
+        @keyframes blink {
+            0% {
+                border-left: 1px solid black;
+            }
+
+            50% {
+                border-left: 1px solid rgba(0, 0, 0, 0);
+            }
+        }
+
         .red-outline {
             border: 1px solid red;
         }
-        
-        div.word {
-            display: inline-block
+
+        #typing-area {
+            font-size: 20px;
+            margin: 2em;
+            min-width: 75vw;
+            display: block;
+            user-select: none;
         }
-        
-        div.space {
+
+        #typing-area * {
             display: inline-block;
-            margin-left: 1em
+            padding-right: 0.05em;
+            min-width: 5px;
+            min-height: 1ch;
+            border-left: 1px solid rgba(0, 0, 0, 0);
         }
-        
-        div.letter {
-            font: 'Roboto Mono';
-            display: inline-block;
-            margin-left: 0.25em
+
+        .not-typed {
+            color: #707070;
+        }
+
+        .typed {
+            color: #000000;
         }
     </style>
 
     <script>
-        const text_to_type = `
-        Hi there
-        I am a monkey.
-        Ooh ooh ah ah.
-        `
         let all_red = false
 
         function toggle_red() {
@@ -47,23 +70,84 @@
             all_red = true
         }
 
+        // The list of words to type
+        // TODO: get this from some list or something
+        let words = [
+            'Hi', 'there,', 'I', 'am', 'a', 'monkey.',
+            'Ooh', 'ooh', 'ah', 'ah.'
+        ]
+
+        let word_divs = []
+
         function main() {
             const div = document.querySelector('#typing-area')
-            let result = ''
-            for (const word of text_to_type.split(' ')) {
+            const typing_area = document.createElement('div')
+            typing_area.id = 'typing-area'
+
+            for (const word of words) {
                 if (word == '' || word == '\n') {
                     continue
                 }
-                result += '<div class="word">'
                 for (const letter of word) {
-                    result += `<div class="letter not-typed">${letter}</div>`
+                    const letter_div = document.createElement('div')
+                    letter_div.classList.add('letter', 'not-typed')
+                    letter_div.textContent = `${letter}`
+                    typing_area.appendChild(letter_div)
                 }
-                result += '</div><div class="space"></div>'
+
+                const space = document.createElement('div')
+                space.classList.add('letter', 'not-typed')
+                space.innerHTML = '&nbsp;'
+                typing_area.appendChild(space)
             }
-            div.innerHTML = result
 
-            window.addEventListener('keydown', function() {})
+            typing_area.firstElementChild.classList.add('cursor')
+            div.replaceWith(typing_area)
 
+            let children = [...typing_area.children].
+                filter(e => e.classList.contains('letter'))
+            let index = 0
+
+            // 'keypress' only handles events which have a character associated
+            // with them, which backspace doesn't
+            window.addEventListener('keydown', function (e) {
+                if (index == 0 || e.key != 'Backspace') {
+                    return
+                }
+
+                children[index].classList.remove('cursor')
+                children[index - 1].classList.add('cursor', 'not-typed')
+                index -= 1
+            })
+
+            window.addEventListener('keypress', function (e) {
+                // The person is finished typing
+                if (index >= children.length - 1) {
+                    return
+                }
+
+                let key = e.key
+                const current = children[index]
+
+                // We use &nbsp; for the spaces, which is actually a
+                // nonbreaking space.
+                if (key == ' ') {
+                    key = '\xa0'
+                }
+
+                if (key != '\xa0' && !e.shiftKey) {
+                    key = key.toLocaleLowerCase()
+                }
+
+                // Incorrect letter typed.
+                if (key != children[index].textContent) {
+                    return
+                }
+
+                index += 1
+                current.classList.remove('not-typed', 'cursor')
+                children[index].classList.add('cursor')
+            })
         }
 
         window.onload = main
@@ -71,9 +155,17 @@
 </head>
 
 <body>
-    <h1>GorillaType</h1>
-    <div id="typing-area">
-    </div>
+    <h1 class="title">GorillaType</h1>
+    <noscript id="typing-area">
+        This website makes use of Javascript for the entire game, meaning it
+        can't work without it.
 
-    <button id="toggle-red" onclick="toggle_red()">Toggle Red Outlines</button>
+        The Javascript on this page didn't run, which either means your browser
+        doesn't support Javascript, or you have it disabled.
+
+        If you have Javascript disabled and decide to re-enable it, make sure
+        to reload the page before doing it.
+    </noscript>
+
+    <button id="toggle-red" onclick="toggle_red()">Toggle Red Outlines (Useful for Debugging)</button>
 </body>
