@@ -80,21 +80,36 @@
             all_red = true
         }
 
-        // The list of words to type
-        // TODO: get this from some list or something
-        let words = [
-            'Hi', 'there,', 'I', 'am', 'a', 'monkey.',
-            'Ooh', 'ooh', 'ah', 'ah.'
-        ]
+        let passages = import('/texts.js')
+        let passage = {}
 
-        let word_divs = []
+        async function main() {
+            // First we replace the noscript message with some loading message
+            const old = document.querySelector('#typing-area')
+            const tmp = document.createElement('p')
+            tmp.id = 'typing-area'
+            tmp.classList.add('not-typed')
+            tmp.textContent = 'Loading Paragraph...'
+            old.replaceWith(tmp)
 
-        function main() {
+            // Then wait for the words to load and get a random one
+            passages = (await passages).default
+            passage = passages[Math.floor(Math.random() * passages.length)]
+
+            // Display the source of the text.
+            const instructions = document.querySelector('#instructions')
+            const info = document.createElement('aside')
+            info.innerHTML = `
+                <p>The text below is from: <strong>${passage.from}</strong></p>
+            `
+            instructions.append(info)
+
+            // Now we build the typable words
             const div = document.querySelector('#typing-area')
             const typing_area = document.createElement('div')
             typing_area.id = 'typing-area'
 
-            for (const word of words) {
+            for (const word of passage.text()) {
                 if (word == '' || word == '\n') {
                     continue
                 }
@@ -121,6 +136,17 @@
             // 'keypress' only handles events which have a character associated
             // with them, which backspace doesn't
             window.addEventListener('keydown', function (e) {
+                // In some browsers, '\'' and '/' cause a search on page to
+                // happen
+                if (e.keyCode == 222 || e.keyCode == 191) {
+                    e.preventDefault()
+                    window.dispatchEvent(new KeyboardEvent(
+                        'keypress',
+                        { 'key': e.key },
+                    ))
+                    return
+                }
+
                 if (index == 0 || e.key != 'Backspace') {
                     return
                 }
@@ -188,6 +214,7 @@
             const time_ms = Date.now() - start_time
             const time_sec = time_ms / 1000
             const time_min = time_ms / 60000
+            const words = passage.text()
 
             const wpm = document.createElement('p')
             wpm.innerHTML = `
@@ -197,10 +224,10 @@
             const time = document.createElement('p')
             time.innerHTML = `<strong>Time:</strong> ${time_sec}s`
 
-            console.log(words.flat())
+            const chars = words.reduce((sum, word) => sum + word.length, 0)
             const characters = document.createElement('p')
             characters.innerHTML = `
-                <strong>Characters Typed:</strong> ${words.flat().length}
+                <strong>Characters Typed:</strong> ${chars}
             `
 
             const results = document.createElement('div')
