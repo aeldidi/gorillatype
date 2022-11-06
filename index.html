@@ -2,8 +2,18 @@
 
 <head>
     <style>
-        * {
+        html {
             font-family: monospace;
+            max-width: 1000px;
+            margin: 0 auto
+        }
+
+        p {
+            font-size: 16px
+        }
+
+        h1 {
+            font-size: 20px
         }
 
         .cursor {
@@ -121,8 +131,21 @@
             })
 
             window.addEventListener('keypress', function (e) {
+                if (done_typing) {
+                    return
+                }
+
+                if (!began_typing) {
+                    console.log('started')
+                    start_time = Date.now()
+                    began_typing = true
+                }
+
                 // The person is finished typing
                 if (index >= children.length - 1) {
+                    console.log('done')
+                    done_typing = true
+                    display_end_message()
                     return
                 }
 
@@ -147,7 +170,55 @@
                 index += 1
                 current.classList.remove('not-typed', 'cursor')
                 children[index].classList.add('cursor')
+                // The person is finished typing
+                if (index >= children.length - 1) {
+                    console.log('done')
+                    done_typing = true
+                    display_end_message()
+                    return
+                }
             })
+        }
+
+        var start_time = 0
+        var began_typing = false
+        var done_typing = false
+
+        function display_end_message() {
+            const time_ms = Date.now() - start_time
+            const time_sec = time_ms / 1000
+            const time_min = time_ms / 60000
+
+            const wpm = document.createElement('p')
+            wpm.innerHTML = `
+                <strong><abbr title="Words Per Minute">WPM</abbr>:</strong>
+                ${words.length / time_min}
+            `
+            const time = document.createElement('p')
+            time.innerHTML = `<strong>Time:</strong> ${time_sec}s`
+
+            console.log(words.flat())
+            const characters = document.createElement('p')
+            characters.innerHTML = `
+                <strong>Characters Typed:</strong> ${words.flat().length}
+            `
+
+            const results = document.createElement('div')
+            results.append(wpm, time, characters)
+
+            const typing_area = document.querySelector('#typing-area')
+            typing_area.replaceWith(results)
+
+            const msg = document.createElement('p')
+            msg.innerHTML = `
+                <p>
+                    Thanks for using GorillaType, refresh the page if you want
+                    to do another test.
+                </p>
+                <strong>Your results:</strong>
+            `
+            const instructions = document.querySelector('#instructions')
+            instructions.replaceWith(msg)
         }
 
         window.onload = main
@@ -155,7 +226,13 @@
 </head>
 
 <body>
-    <h1 class="title">GorillaType</h1>
+    <h1>GorillaType</h1>
+    <p id="instructions">
+        <strong>Instructions:</strong> Type out the text below as fast as
+        you can. When you're done, we'll tell you your typing speed.
+
+        Timing starts when you begin typing.
+    </p>
     <noscript id="typing-area">
         This website makes use of Javascript for the entire game, meaning it
         can't work without it.
@@ -166,6 +243,13 @@
         If you have Javascript disabled and decide to re-enable it, make sure
         to reload the page before doing it.
     </noscript>
+    <p>To get a new paragraph to type, refresh the page.</p>
 
     <button id="toggle-red" onclick="toggle_red()">Toggle Red Outlines (Useful for Debugging)</button>
+
+    <template id="end-message">
+        <div class="end-box">
+            <p><strong><abbr title="Words Per Minute">WPM</abbr>:</strong> </p>
+        </div>
+    </template>
 </body>
