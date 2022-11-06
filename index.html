@@ -146,14 +146,6 @@
                     ))
                     return
                 }
-
-                if (index == 0 || e.key != 'Backspace') {
-                    return
-                }
-
-                children[index].classList.remove('cursor')
-                children[index - 1].classList.add('cursor', 'not-typed')
-                index -= 1
             })
 
             window.addEventListener('keypress', function (e) {
