@@ -68,10 +68,20 @@
         .typed {
             color: #000000;
         }
+
+        #title * {
+            display: inline-block
+        }
+
+        .line {
+            height: 16px;
+            border-left: 2px solid black;
+            margin: 0 5px
+        }
     </style>
 
     <script>
-        let passages = import('/texts.js')
+        let passages = import('./texts.js')
         let passage = {}
 
         let start_time = 0
@@ -248,7 +258,11 @@
 </head>
 
 <body>
-    <h1>GorillaType</h1>
+    <div id="title">
+        <h1>GorillaType</h1>
+        <span class="line"></span>
+        <p>Made by Ayman El Didi</p>
+    </div>
     <p id="instructions">
         <strong>Instructions:</strong> Type out the text below as fast as
         you can. When you're done, we'll tell you your typing speed.
