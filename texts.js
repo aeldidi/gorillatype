@@ -8,6 +8,45 @@ function words(text) {
 // list of the words to type.
 export default [
     {
+        from: 'The Aesop for Children by Aesop',
+        text: words(`
+        All the Mice were much surprised that they had not thought of such a
+        plan before. But in the midst of the rejoicing over their good fortune,
+        an old Mouse arose and said:
+        "I will say that the plan of the young Mouse is very good. But let me
+        ask one question: Who will bell the Cat?"
+        `)
+    },
+    {
+        from: 'Around the World in Eighty Days by Jules Verne',
+        text: words(`
+        Phileas Fogg was not known to have either wife or children, which may
+        happen to the most honest people; either relatives or near friends,
+        which is certainly more unusual. He lived alone in his house in Saville
+        Row, whither none penetrated. A single domestic sufficed to serve him.
+        `)
+    },
+    {
+        from: 'The Jungle Book by Rudyard Kipling',
+        text: words(`
+        Kaa was everything that the monkeys feared in the jungle, for none of
+        them knew the limits of his power, none of them could look him in the
+        face, and none had ever come alive out of his hug. And so they ran,
+        stammering with terror, to the walls and the roofs of the houses, and
+        Baloo drew a deep breath of relief.
+        `)
+    },
+    {
+        from: 'Anne of Green Gables by L. M. Montgomery',
+        text: words(`
+        "Oh, I'm not ashamed of it," explained Anne, "only I like Cordelia
+        better. I've always imagined that my name was Cordelia - at least, I
+        always have of late years. When I was young I used to imagine it was
+        Geraldine, but I like Cordelia better now. But if you call me Anne
+        please call me Anne spelled with an E."
+        `)
+    },
+    {
         from: 'The Wonderful Wizard of Oz by L. Frank Baum',
         text: words(`
         It was a terrible thing to undergo, but during the year I stood there I
