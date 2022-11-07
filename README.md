@@ -1,9 +1,11 @@
-GorillaType
+Typing Test
 ===========
 
-A typing test website similar to <https://monkeytype.com>. It has no
-dependencies, and can be hosted by simply hosting `index.html` and `texts.js`
-in the same directory.
+![A screenshot of the typing test in Firefox](screenshot.png)
+
+A simple typing test website in the same vain as
+[MonkeyType](https://monkeytype.com). It has no dependencies, and can be hosted
+by simply hosting `index.html` and `texts.js` in the same directory.
 
 License
 -------
