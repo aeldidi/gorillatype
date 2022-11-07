@@ -34,7 +34,6 @@
         #typing-area {
             font-size: 20px;
             margin: 30px;
-            max-width: 1000px;
             display: block;
             user-select: none;
         }
@@ -51,6 +50,11 @@
             display: inline;
             min-width: 5px;
             min-height: 1ch;
+        }
+
+        .result-statistic {
+            display: inline-block;
+            margin: 0 20px;
         }
 
         .letter {
@@ -70,9 +74,10 @@
         let passages = import('/texts.js')
         let passage = {}
 
-        var start_time = 0
-        var began_typing = false
-        var done_typing = false
+        let start_time = 0
+        let began_typing = false
+        let done_typing = false
+        let mistakes_made = 0
 
         async function main() {
             // First we replace the noscript message with some loading message
@@ -148,12 +153,6 @@
                     return
                 }
 
-                if (!began_typing) {
-                    console.log('started')
-                    start_time = Date.now()
-                    began_typing = true
-                }
-
                 let key = e.key
 
                 // We use &nbsp; for the spaces, which is actually a
@@ -167,8 +166,15 @@
                 }
 
                 // Incorrect letter typed.
-                if (key != current_word[char_index]) {
+                if (key != current_word[char_index] && began_typing) {
+                    mistakes_made += 1
                     return
+                }
+
+                if (!began_typing) {
+                    console.log('started')
+                    start_time = Date.now()
+                    began_typing = true
                 }
 
                 const current = word_divs[word_index].children[char_index]
@@ -206,21 +212,27 @@
             const words = passage.text()
 
             const wpm = document.createElement('p')
+            wpm.classList.add('result-statistic')
             wpm.innerHTML = `
                 <strong><abbr title="Words Per Minute">WPM</abbr>:</strong>
-                ${words.length / time_min}
+                ${Math.round((words.length / time_min) * 100) / 100}
             `
             const time = document.createElement('p')
+            time.classList.add('result-statistic')
             time.innerHTML = `<strong>Time:</strong> ${time_sec}s`
 
             const chars = words.reduce((sum, word) => sum + word.length, 0)
             const characters = document.createElement('p')
-            characters.innerHTML = `
-                <strong>Characters Typed:</strong> ${chars}
-            `
+            characters.classList.add('result-statistic')
+            characters.innerHTML = `<strong>Characters Typed:</strong> ${chars}`
+
+            const accuracy = document.createElement('p')
+            const accuracy_percent = Math.round((100 - (mistakes_made / chars) * 100) * 100) / 100
+            accuracy.classList.add('result-statistic')
+            accuracy.innerHTML = `<strong>Accuracy:</strong> ${accuracy_percent}%`
 
             const results = document.createElement('div')
-            results.append(wpm, time, characters)
+            results.append(wpm, time, characters, accuracy)
 
             const typing_area = document.querySelector('#typing-area')
             typing_area.replaceWith(results)
