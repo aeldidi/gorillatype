@@ -31,24 +31,30 @@
             }
         }
 
-        .red-outline {
-            border: 1px solid red;
-        }
-
         #typing-area {
             font-size: 20px;
-            margin: 2em;
-            min-width: 75vw;
+            margin: 30px;
+            max-width: 1000px;
             display: block;
             user-select: none;
         }
 
         #typing-area * {
+            border-left: 1px solid rgba(0, 0, 0, 0);
+        }
+
+        #typing-area>* {
             display: inline-block;
-            padding-right: 0.05em;
+        }
+
+        .space {
+            display: inline;
             min-width: 5px;
             min-height: 1ch;
-            border-left: 1px solid rgba(0, 0, 0, 0);
+        }
+
+        .letter {
+            display: inline
         }
 
         .not-typed {
@@ -61,27 +67,12 @@
     </style>
 
     <script>
-        let all_red = false
-
-        function toggle_red() {
-            if (all_red) {
-                all_red = false
-                const divs = document.querySelectorAll('*')
-                for (const div of divs) {
-                    div.classList.remove('red-outline')
-                }
-                return
-            }
-
-            const divs = document.querySelectorAll('*')
-            for (const div of divs) {
-                div.classList.add('red-outline')
-            }
-            all_red = true
-        }
-
         let passages = import('/texts.js')
         let passage = {}
+
+        var start_time = 0
+        var began_typing = false
+        var done_typing = false
 
         async function main() {
             // First we replace the noscript message with some loading message
@@ -110,28 +101,28 @@
             typing_area.id = 'typing-area'
 
             for (const word of passage.text()) {
-                if (word == '' || word == '\n') {
-                    continue
-                }
+                const word_div = document.createElement('div')
+                word_div.classList.add('word')
+
                 for (const letter of word) {
                     const letter_div = document.createElement('div')
                     letter_div.classList.add('letter', 'not-typed')
                     letter_div.textContent = `${letter}`
-                    typing_area.appendChild(letter_div)
+                    word_div.appendChild(letter_div)
                 }
 
                 const space = document.createElement('div')
-                space.classList.add('letter', 'not-typed')
+                space.classList.add('space')
                 space.innerHTML = '&nbsp;'
-                typing_area.appendChild(space)
+
+                word_div.append(space)
+                typing_area.append(word_div)
             }
 
-            typing_area.firstElementChild.classList.add('cursor')
-            div.replaceWith(typing_area)
+            const word_divs = [...typing_area.children]
 
-            let children = [...typing_area.children].
-                filter(e => e.classList.contains('letter'))
-            let index = 0
+            word_divs[0].firstElementChild.classList.add('cursor')
+            div.replaceWith(typing_area)
 
             // 'keypress' only handles events which have a character associated
             // with them, which backspace doesn't
@@ -148,6 +139,10 @@
                 }
             })
 
+            let word_index = 0
+            let current_word = word_divs[0].textContent
+            let char_index = 0
+
             window.addEventListener('keypress', function (e) {
                 if (done_typing) {
                     return
@@ -159,16 +154,7 @@
                     began_typing = true
                 }
 
-                // The person is finished typing
-                if (index >= children.length - 1) {
-                    console.log('done')
-                    done_typing = true
-                    display_end_message()
-                    return
-                }
-
                 let key = e.key
-                const current = children[index]
 
                 // We use &nbsp; for the spaces, which is actually a
                 // nonbreaking space.
@@ -181,26 +167,37 @@
                 }
 
                 // Incorrect letter typed.
-                if (key != children[index].textContent) {
+                if (key != current_word[char_index]) {
                     return
                 }
 
-                index += 1
+                const current = word_divs[word_index].children[char_index]
+                char_index += 1
                 current.classList.remove('not-typed', 'cursor')
-                children[index].classList.add('cursor')
-                // The person is finished typing
-                if (index >= children.length - 1) {
-                    console.log('done')
-                    done_typing = true
-                    display_end_message()
+
+                // Are they done the current word?
+                if (char_index >= current_word.length ||
+                    (word_index == word_divs.length - 1 &&
+                        char_index >= current_word.length - 1)) {
+                    word_index += 1
+                    // Are they also done the last word?
+                    if (word_index >= word_divs.length) {
+                        console.log('done')
+                        done_typing = true
+                        display_end_message()
+                        return
+                    }
+
+                    char_index = 0
+                    current_word = word_divs[word_index].textContent
+                    word_divs[word_index].children[0].classList.add('cursor')
                     return
                 }
+
+                word_divs[word_index].children[char_index].classList.add('cursor')
+
             })
         }
-
-        var start_time = 0
-        var began_typing = false
-        var done_typing = false
 
         function display_end_message() {
             const time_ms = Date.now() - start_time
@@ -229,13 +226,7 @@
             typing_area.replaceWith(results)
 
             const msg = document.createElement('p')
-            msg.innerHTML = `
-                <p>
-                    Thanks for using GorillaType, refresh the page if you want
-                    to do another test.
-                </p>
-                <strong>Your results:</strong>
-            `
+            msg.innerHTML = `<strong>Your results:</strong>`
             const instructions = document.querySelector('#instructions')
             instructions.replaceWith(msg)
         }
@@ -263,8 +254,6 @@
         to reload the page before doing it.
     </noscript>
     <p>To get a new paragraph to type, refresh the page.</p>
-
-    <button id="toggle-red" onclick="toggle_red()">Toggle Red Outlines (Useful for Debugging)</button>
 
     <template id="end-message">
         <div class="end-box">
