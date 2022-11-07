@@ -70,13 +70,14 @@
         }
 
         #title * {
-            display: inline-block
+            display: inline-block;
+            margin-bottom: 5px;
         }
 
         .line {
-            height: 16px;
+            font-size: 20px;
             border-left: 2px solid black;
-            margin: 0 5px
+            margin-left: 5px
         }
     </style>
 
@@ -148,7 +149,7 @@
                     e.preventDefault()
                     window.dispatchEvent(new KeyboardEvent(
                         'keypress',
-                        { 'key': e.key },
+                        { key: e.key },
                     ))
                     return
                 }
@@ -260,7 +261,7 @@
 <body>
     <div id="title">
         <h1>GorillaType</h1>
-        <span class="line"></span>
+        <span class="line">&nbsp;</span>
         <p>Made by Ayman El Didi</p>
     </div>
     <p id="instructions">
