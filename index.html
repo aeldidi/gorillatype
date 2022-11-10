@@ -45,9 +45,6 @@
 
         #typing-area * {
             border-left: 1px solid rgba(0, 0, 0, 0);
-        }
-
-        #typing-area>* {
             display: inline-block;
         }
 
@@ -57,9 +54,14 @@
             min-height: 1ch;
         }
 
-        .result-statistic {
-            display: inline-block;
-            margin: 0 20px;
+        #result-statistics {
+            display: flex;
+            flex-direction: row;
+            justify-content: space-evenly;
+        }
+
+        #result-statistics b {
+            margin-right: 5px;
         }
 
         .letter {
@@ -87,179 +89,204 @@
     </style>
 
     <script>
+        // Helper functions
+        const $ = (selector) => document.querySelector(selector)
+        $.all = (selector) => [...document.querySelectorAll(selector)]
+        Element.prototype.html = function (list) {
+            return this.replaceWith(html(list))
+        }
+        Element.prototype._append = Element.prototype.append
+        Element.prototype.append = function (...list) {
+            for (i of list) {
+                if (Array.isArray(i)) {
+                    this.appendChild(html(i))
+                    continue
+                }
+
+                this._append(i)
+            }
+        }
+
+        // Generates an element tree from a lisp-like list.
+        // The first element of each nested list is the tag name.
+        // If any element is an object, it's the attributes.
+        // Otherwise, if any element is an array, its treated like another html
+        // list, and if its a string it's appended to innerHTML.
+        //
+        // For example, ['p', { classes: ['bar', 'foo'] }, ['b', 'a'], 'b&lt;']
+        // becomes <p class="bar foo"><b>a</b>b&lt;</p>
+        function html(list) {
+            const result = document.createElement(list[0])
+            if (list.length == 1) {
+                return result
+            }
+
+            for (i of list.slice(1)) {
+                if (Array.isArray(i) || (i instanceof Element ||
+                    i instanceof HTMLElement)) {
+                    result.append(i)
+                    continue
+                }
+
+                if (typeof i !== 'object') {
+                    result.append(document.createTextNode(i))
+                    continue
+                }
+
+                for (attr of Object.keys(i)) {
+                    // classList is read-only
+                    if (attr === 'classes') {
+                        result.classList.add(...i[attr])
+                        continue
+                    }
+
+                    result[attr] = i[attr]
+                }
+                continue
+            }
+            return result
+        }
+
+        // returns a string representation of a keypress event.
+        function keypress_str(e) {
+            // We use &nbsp; for the spaces, which is actually a
+            // nonbreaking space.
+            if (e.key == ' ') {
+                return '\xa0'
+            }
+
+            if (!e.shiftKey) {
+                return e.key.toLocaleLowerCase()
+            }
+
+            return e.key
+        }
+
+
+        // Actual Code
+
         let passages = import('./texts.js')
         let passage = {}
-
         let start_time = 0
         let began_typing = false
         let done_typing = false
         let mistakes_made = 0
 
-        async function main() {
+        window.onload = async function () {
             // First we replace the noscript message with some loading message
-            const old = document.querySelector('#typing-area')
-            const tmp = document.createElement('p')
-            tmp.id = 'typing-area'
-            tmp.classList.add('not-typed')
-            tmp.textContent = 'Loading Paragraph...'
-            old.replaceWith(tmp)
+            $('#typing-area').html(
+                ['p', { id: 'typing-area', classes: ['not-typed'] },
+                    'Loading Paragraph...']
+            )
 
             // Then wait for the words to load and get a random one
             passages = (await passages).default
             passage = passages[Math.floor(Math.random() * passages.length)]
 
             // Display the source of the text.
-            const instructions = document.querySelector('#instructions')
-            const info = document.createElement('aside')
-            info.innerHTML = `
-                <p>The text below is from: <strong>${passage.from}</strong></p>
-            `
-            instructions.append(info)
+            $('#instructions').append(
+                ['p', 'The text below is from: ', ['b', passage.from]]
+            )
 
             // Now we build the typable words
-            const div = document.querySelector('#typing-area')
-            const typing_area = document.createElement('div')
-            typing_area.id = 'typing-area'
-
-            for (const word of passage.text()) {
-                const word_div = document.createElement('div')
-                word_div.classList.add('word')
-
-                for (const letter of word) {
-                    const letter_div = document.createElement('div')
-                    letter_div.classList.add('letter', 'not-typed')
-                    letter_div.textContent = `${letter}`
-                    word_div.appendChild(letter_div)
-                }
-
-                const space = document.createElement('div')
-                space.classList.add('space')
-                space.innerHTML = '&nbsp;'
-
-                word_div.append(space)
-                typing_area.append(word_div)
-            }
-
-            const word_divs = [...typing_area.children]
+            const words = passage.text()
+            const word_divs = words.map(word => html(
+                ['div', { classes: ['word'] },
+                    ...Array.from(word).map(letter =>
+                        ['div', { classes: ['letter', 'not-typed'] }, letter]
+                    ),
+                    // Each word has a space at the end
+                    ['div', { classes: ['space'] }, String.fromCharCode(0xa0)]
+                ]
+            ))
 
             word_divs[0].firstElementChild.classList.add('cursor')
-            div.replaceWith(typing_area)
+            $('#typing-area').html(
+                ['div', { id: 'typing-area' }, ...word_divs]
+            )
 
-            // 'keypress' only handles events which have a character associated
-            // with them, which backspace doesn't
+            window.addEventListener('keypress', keypress)
+            // 'keypress' happens after the browser processes shortcuts.
             window.addEventListener('keydown', function (e) {
                 // In some browsers, '\'' and '/' cause a search on page to
                 // happen
-                if (e.keyCode == 222 || e.keyCode == 191) {
-                    e.preventDefault()
-                    window.dispatchEvent(new KeyboardEvent(
-                        'keypress',
-                        { key: e.key },
-                    ))
-                    return
-                }
-            })
-
-            let word_index = 0
-            let current_word = word_divs[0].textContent
-            let char_index = 0
-
-            window.addEventListener('keypress', function (e) {
-                if (done_typing) {
+                if (e.keyCode !== 222 || e.keyCode !== 191) {
                     return
                 }
 
-                let key = e.key
-
-                // We use &nbsp; for the spaces, which is actually a
-                // nonbreaking space.
-                if (key == ' ') {
-                    key = '\xa0'
-                }
-
-                if (key != '\xa0' && !e.shiftKey) {
-                    key = key.toLocaleLowerCase()
-                }
-
-                // Incorrect letter typed.
-                if (key != current_word[char_index] && began_typing) {
-                    mistakes_made += 1
-                    return
-                }
-
-                if (!began_typing) {
-                    console.log('started')
-                    start_time = Date.now()
-                    began_typing = true
-                }
-
-                const current = word_divs[word_index].children[char_index]
-                char_index += 1
-                current.classList.remove('not-typed', 'cursor')
-
-                // Are they done the current word?
-                if (char_index >= current_word.length ||
-                    (word_index == word_divs.length - 1 &&
-                        char_index >= current_word.length - 1)) {
-                    word_index += 1
-                    // Are they also done the last word?
-                    if (word_index >= word_divs.length) {
-                        console.log('done')
-                        done_typing = true
-                        display_end_message()
-                        return
-                    }
-
-                    char_index = 0
-                    current_word = word_divs[word_index].textContent
-                    word_divs[word_index].children[0].classList.add('cursor')
-                    return
-                }
-
-                word_divs[word_index].children[char_index].classList.add('cursor')
-
+                e.preventDefault()
+                window.dispatchEvent(new KeyboardEvent(
+                    'keypress',
+                    { key: e.key },
+                ))
             })
         }
 
-        function display_end_message() {
+        let word_index = 0
+        let char_index = 0
+
+        function keypress(e) {
+            if (done_typing) {
+                return
+            }
+
+            const words = $.all('#typing-area > div')
+            const letters = words[word_index].children
+            const current_word = words[word_index].textContent
+            const key = keypress_str(e)
+
+            // Incorrect letter typed.
+            if (key != current_word[char_index] && began_typing) {
+                mistakes_made += 1
+                return
+            }
+
+            if (!began_typing) {
+                start_time = Date.now()
+                began_typing = true
+            }
+
+            const current = words[word_index].children[char_index]
+            char_index += 1
+            current.classList.remove('not-typed', 'cursor')
+
+            // Are they done the current word?
+            if (char_index >= current_word.length ||
+                (word_index == words.length - 1 &&
+                    char_index >= current_word.length - 1)) {
+                word_index += 1
+                // Are they also done the last word?
+                if (word_index >= words.length) {
+                    done_typing = true
+                    $('#typing-area').html(end_message())
+                    $('#instructions').html(['b', 'Your Results:'])
+                    return
+                }
+
+                char_index = 0
+            }
+
+            words[word_index].children[char_index].classList.add('cursor')
+        }
+
+        function end_message() {
             const time_ms = Date.now() - start_time
-            const time_sec = time_ms / 1000
+            const time_sec = Math.round(time_ms / 10) / 100
             const time_min = time_ms / 60000
             const words = passage.text()
 
-            const wpm = document.createElement('p')
-            wpm.classList.add('result-statistic')
-            wpm.innerHTML = `
-                <strong><abbr title="Words Per Minute">WPM</abbr>:</strong>
-                ${Math.round((words.length / time_min) * 100) / 100}
-            `
-            const time = document.createElement('p')
-            time.classList.add('result-statistic')
-            time.innerHTML = `<strong>Time:</strong> ${time_sec}s`
-
+            const wpm = Math.round((words.length / time_min) * 100) / 100
             const chars = words.reduce((sum, word) => sum + word.length, 0)
-            const characters = document.createElement('p')
-            characters.classList.add('result-statistic')
-            characters.innerHTML = `<strong>Characters Typed:</strong> ${chars}`
+            const accuracy = Math.round((100 - (mistakes_made / chars) * 100) * 100) / 100
 
-            const accuracy = document.createElement('p')
-            const accuracy_percent = Math.round((100 - (mistakes_made / chars) * 100) * 100) / 100
-            accuracy.classList.add('result-statistic')
-            accuracy.innerHTML = `<strong>Accuracy:</strong> ${accuracy_percent}%`
-
-            const results = document.createElement('div')
-            results.append(wpm, time, characters, accuracy)
-
-            const typing_area = document.querySelector('#typing-area')
-            typing_area.replaceWith(results)
-
-            const msg = document.createElement('p')
-            msg.innerHTML = `<strong>Your results:</strong>`
-            const instructions = document.querySelector('#instructions')
-            instructions.replaceWith(msg)
+            return ['div', { id: 'result-statistics' },
+                ['p', ['b',
+                    ['abbr', { title: 'words per minute' }, 'WPM:']], wpm],
+                ['p', ['b', 'Characters Typed:'], chars],
+                ['p', ['b', 'Accuracy:'], `${accuracy}%`],
+                ['p', ['b', 'Time:'], `${time_sec}s`],
+            ]
         }
-
-        window.onload = main
     </script>
 </head>
 
