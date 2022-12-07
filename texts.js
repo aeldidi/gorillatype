@@ -8,6 +8,16 @@ function words(text) {
 // list of the words to type.
 export default [
     {
+        from: 'Pollyanna by Eleanor H. Porter',
+        text: words(`
+        The influence of a beautiful,
+        helpful, hopeful character is contagious, and may revolutionize a whole
+        town.... People radiate what is in their minds and in their hearts. If
+        a man feels kindly and obliging, his neighbors will feel that way, too,
+        before long.
+        `)
+    },
+    {
         from: 'The Aesop for Children by Aesop',
         text: words(`
         All the Mice were much surprised that they had not thought of such a
